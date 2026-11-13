@@ -1,0 +1,61 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && $room.matches(/^[A-Z0-9]{4}$/) && newData.child('hostUid').val() === auth.uid",
+        ".validate": "newData.hasChildren(['targetPlayers', 'hostUid', 'round'])",
+
+        "targetPlayers": {
+          ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 4"
+        },
+        "hostUid": {
+          ".validate": "newData.isString()"
+        },
+        "round": {
+          ".write": "auth != null && newData.isNumber() && newData.val() === data.val() + 1 && (root.child('rooms/' + $room + '/seats/s0').val() === auth.uid || root.child('rooms/' + $room + '/seats/s1').val() === auth.uid || root.child('rooms/' + $room + '/seats/s2').val() === auth.uid || root.child('rooms/' + $room + '/seats/s3').val() === auth.uid)",
+          ".validate": "newData.isNumber() && newData.val() >= 1"
+        },
+
+        "seats": {
+          "$seat": {
+            ".write": "auth != null && !data.exists() && newData.val() === auth.uid && ($seat === 's0' || $seat === 's1' || ($seat === 's2' && root.child('rooms/' + $room + '/targetPlayers').val() >= 3) || ($seat === 's3' && root.child('rooms/' + $room + '/targetPlayers').val() === 4)) && root.child('rooms/' + $room + '/seats/s0').val() !== auth.uid && root.child('rooms/' + $room + '/seats/s1').val() !== auth.uid && root.child('rooms/' + $room + '/seats/s2').val() !== auth.uid && root.child('rooms/' + $room + '/seats/s3').val() !== auth.uid",
+            ".validate": "newData.isString()"
+          }
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && (root.child('rooms/' + $room + '/seats/s0').val() === auth.uid || root.child('rooms/' + $room + '/seats/s1').val() === auth.uid || root.child('rooms/' + $room + '/seats/s2').val() === auth.uid || root.child('rooms/' + $room + '/seats/s3').val() === auth.uid)",
+            ".validate": "newData.hasChild('name') && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 16",
+            "name": { ".validate": true },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "rounds": {
+          "$round": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && $round.matches(/^r[0-9]+$/) && (root.child('rooms/' + $room + '/seats/s0').val() === auth.uid || root.child('rooms/' + $room + '/seats/s1').val() === auth.uid || root.child('rooms/' + $room + '/seats/s2').val() === auth.uid || root.child('rooms/' + $room + '/seats/s3').val() === auth.uid)",
+              ".validate": "newData.hasChild('commit')",
+              "commit": {
+                ".validate": "newData.isString() && newData.val().length === 64 && (!data.exists() || data.val() === newData.val())"
+              },
+              "move": {
+                ".validate": "newData.isString() && newData.val().matches(/^(rock|paper|scissors|lizard|spock)$/) && newData.parent().child('commit').exists() && !data.exists()"
+              },
+              "salt": {
+                ".validate": "newData.isString() && newData.val().length <= 64 && !data.exists()"
+              },
+              "$other": { ".validate": false }
+            }
+          }
+        },
+
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rock Paper Scissors Lizard Spock</title>
+  <meta name="description" content="Play Rock Paper Scissors Lizard Spock with 2 to 4 friends, each on their own device.">
+  <meta name="theme-color" content="#0b1030">
+  <link rel="icon" href="assets/rock.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="shell">
+    <header class="masthead">
+      <div class="icon-row" aria-hidden="true">
+        <img src="assets/rock.png" alt="">
+        <img src="assets/paper.png" alt="">
+        <img src="assets/scissors.png" alt="">
+        <img src="assets/lizard.png" alt="">
+        <img src="assets/spock.png" alt="">
+      </div>
+      <h1>
+        <span>Rock</span> <span>Paper</span> <span>Scissors</span>
+        <span class="t-lizard">Lizard</span> <span class="t-spock">Spock</span>
+      </h1>
+      <p class="tagline">2 to 4 players. Everyone plays on their own device.</p>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+    <section id="app" aria-live="polite">
+      <p class="loading">Warming up the Vulcan engines...</p>
+    </section>
+    <footer class="foot">Moves stay secret until every player has locked in.</footer>
+  </main>
+  <noscript><p class="loading">This game needs JavaScript.</p></noscript>
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
