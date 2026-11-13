@@ -144,7 +144,7 @@ async function claimSeat(code, room) {
   throw new Error('That room is full.');
 }
 
-async function joinRoom(code, name) {
+async function takeSeat(code, name) {
   const room = await S.backend.read(`rooms/${code}`);
   if (!room) throw new Error(`Room ${code} was not found. Check the code.`);
   await claimSeat(code, room);
@@ -152,17 +152,40 @@ async function joinRoom(code, name) {
   enterRoom(code);
 }
 
+async function joinRoom(code, name) {
+  if (S.backend.openRoom) await S.backend.openRoom(code, 'auto');
+  try {
+    await takeSeat(code, name);
+  } catch (err) {
+    if (S.backend.closeRoom) S.backend.closeRoom();
+    throw err;
+  }
+}
+
 async function createRoom(name, target) {
   let code = null;
   for (let attempt = 0; attempt < 6 && !code; attempt += 1) {
     const candidate = randomCode();
+    if (S.backend.openRoom) {
+      try {
+        await S.backend.openRoom(candidate, 'host');
+      } catch (err) {
+        if (err.code === 'taken') continue;
+        throw err;
+      }
+    }
     const result = await S.backend.transact(`rooms/${candidate}`, (cur) => (
       cur ? undefined : { targetPlayers: target, hostUid: S.uid, round: 1 }
     ));
     if (result.committed) code = candidate;
   }
   if (!code) throw new Error('Could not create a room. Try again.');
-  await joinRoom(code, name);
+  try {
+    await takeSeat(code, name);
+  } catch (err) {
+    if (S.backend.closeRoom) S.backend.closeRoom();
+    throw err;
+  }
 }
 
 function enterRoom(code) {
@@ -174,6 +197,7 @@ function enterRoom(code) {
   S.resolved = null;
   S.revealingKey = null;
   history.replaceState(null, '', `${location.pathname}?room=${code}`);
+  updateBanner();
   S.unsub = S.backend.watch(`rooms/${code}`, (room) => {
     S.room = room;
     onRoomUpdate();
@@ -187,11 +211,23 @@ function leaveWatch() {
 
 function leaveRoom() {
   leaveWatch();
+  if (S.backend.closeRoom) S.backend.closeRoom();
   S.code = null;
   S.room = null;
   S.joinCode = '';
   history.replaceState(null, '', location.pathname);
+  updateBanner();
   renderHome();
+}
+
+/** Peer-to-peer rooms live in the host's browser, so tell players what that means. */
+function updateBanner(connection) {
+  const b = S.backend;
+  if (!b || b.mode !== 'p2p' || !S.code) { banner.hidden = true; return; }
+  banner.hidden = false;
+  if (connection === 'reconnecting') banner.textContent = 'Connection lost. Trying to reconnect to the host...';
+  else if (b.role === 'host') banner.textContent = 'You are the host. Keep this page open (and your screen awake) until the game is over.';
+  else banner.textContent = 'Connected directly to the host. If the host closes their page, the game pauses until they return.';
 }
 
 async function lockIn() {
@@ -568,25 +604,26 @@ async function boot() {
     return;
   }
   S.uid = S.backend.uid;
-
-  if (S.backend.mode === 'local') {
-    banner.hidden = false;
-    banner.textContent = 'Local demo mode: Firebase is not configured yet, so players sync only between tabs of this browser.';
-  }
+  S.backend.onStatus = (state) => updateBanner(state);
 
   const code = normalizeCode(new URLSearchParams(location.search).get('room'));
+  let problem = '';
   if (code.length === 4) {
-    const room = await S.backend.read(`rooms/${code}`).catch(() => null);
-    const seated = room && room.seats && Object.values(room.seats).includes(S.uid);
-    if (seated) { enterRoom(code); return; }
+    try {
+      if (S.backend.openRoom) await S.backend.openRoom(code, 'auto');
+      const room = await S.backend.read(`rooms/${code}`);
+      const seated = room && room.seats && Object.values(room.seats).includes(S.uid);
+      if (seated) { enterRoom(code); return; }
+      if (!room) problem = `Room ${code} was not found. Check the code.`;
+    } catch (err) {
+      problem = friendly(err);
+    }
+    // Not seated here yet: drop the trial connection; joining opens it again.
+    if (S.backend.closeRoom) S.backend.closeRoom();
     S.joinCode = code;
   }
   renderHome();
-  if (code.length === 4 && S.joinCode === code) {
-    S.backend.read(`rooms/${code}`).then((room) => {
-      if (!room) setMessage(`Room ${code} was not found. Check the code.`);
-    }).catch(() => {});
-  }
+  if (problem) setMessage(problem);
 }
 
 boot();

@@ -1,11 +1,11 @@
-// Paste your Firebase web app config here (Firebase console > Project settings >
-// Your apps > Web app > SDK setup and configuration).
+// OPTIONAL. The game works without Firebase: while the placeholders below are
+// unchanged, players connect peer-to-peer and the room creator's browser acts as
+// the host (see js/backend.js).
 //
-// These values are public by design. The database rules in
-// database.rules.json decide who can read and write.
-//
-// While the placeholders below are unchanged, the page runs in local demo mode:
-// rooms sync only between tabs of the same browser.
+// To use Firebase instead (no host needs to stay online), paste your web app
+// config here (Firebase console > Project settings > Your apps > Web app > SDK
+// setup and configuration). These values are public by design. The database
+// rules in database.rules.json decide who can read and write.
 
 export const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
